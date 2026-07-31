@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: onecall-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: onecall
+    ports:
+      - "5432:5432"
+    volumes:
+      - onecall-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d onecall"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  onecall-postgres-data:

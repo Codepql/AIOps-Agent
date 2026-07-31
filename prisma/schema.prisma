@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SessionType {
+  CHAT
+  AIOPS
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+  TOOL
+}
+
+enum DocumentStatus {
+  PENDING
+  INDEXING
+  READY
+  FAILED
+}
+
+model ChatSession {
+  id        String        @id @db.VarChar(128)
+  type      SessionType   @default(CHAT)
+  title     String?       @db.VarChar(255)
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  messages  ChatMessage[]
+
+  @@index([updatedAt])
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id        String       @id @default(uuid()) @db.Uuid
+  sessionId String       @map("session_id") @db.VarChar(128)
+  role      MessageRole
+  content   String       @db.Text
+  metadata  Json         @default("{}") @db.JsonB
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  session   ChatSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+  @@map("chat_messages")
+}
+
+model KnowledgeDocument {
+  id           String          @id @default(uuid()) @db.Uuid
+  filename     String          @db.VarChar(255)
+  filePath     String          @unique @map("file_path") @db.Text
+  extension    String          @db.VarChar(16)
+  sizeBytes    BigInt          @map("size_bytes")
+  contentHash  String?         @map("content_hash") @db.Char(64)
+  status       DocumentStatus  @default(PENDING)
+  errorMessage String?         @map("error_message") @db.Text
+  indexedAt    DateTime?       @map("indexed_at") @db.Timestamptz(6)
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  chunks       KnowledgeChunk[]
+
+  @@index([status])
+  @@map("knowledge_documents")
+}
+
+// PostgreSQL equivalent of Python's Milvus `biz` collection.
+model KnowledgeChunk {
+  id        String                       @id @default(uuid()) @db.Uuid
+  documentId String                      @map("document_id") @db.Uuid
+  chunkIndex Int                         @map("chunk_index")
+  content   String                       @db.Text
+  metadata  Json                         @default("{}") @db.JsonB
+  embedding Unsupported("vector(1024)")
+  createdAt DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  document  KnowledgeDocument            @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunkIndex])
+  @@index([documentId])
+  @@map("knowledge_chunks")
+}

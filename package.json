@@ -1,0 +1,60 @@
+{
+  "name": "onecall-ts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c magenta,cyan \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:all": "concurrently -k -n api,cls,monitor,web -c magenta,yellow,green,cyan \"npm run dev:api\" \"npm run mcp:cls\" \"npm run mcp:monitor\" \"npm run dev:web\"",
+    "dev:web": "node scripts/wait-for-api.mjs && next dev -p 3000",
+    "dev:api": "tsx scripts/start-api.ts",
+    "mcp:cls": "tsx mcp_servers/clsServer.ts",
+    "mcp:monitor": "tsx mcp_servers/monitorServer.ts",
+    "start": "concurrently -k -n web,api \"next start -p 3000\" \"node dist/src/main.js\"",
+    "build": "prisma generate && next build && tsc -p tsconfig.json",
+    "postinstall": "prisma generate",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prisma:generate": "prisma generate",
+    "prisma:validate": "prisma validate",
+    "db:migrate": "prisma migrate deploy",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.0.12",
+    "@langchain/core": "^1.2.3",
+    "@langchain/langgraph": "^1.4.8",
+    "@langchain/mcp-adapters": "^1.1.3",
+    "@langchain/openai": "^1.5.5",
+    "@langchain/textsplitters": "^1.0.1",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
+    "@types/pg": "^8.20.0",
+    "concurrently": "^10.0.4",
+    "dotenv": "^17.4.2",
+    "hono": "^4.12.32",
+    "langchain": "^1.5.4",
+    "next": "^16.2.12",
+    "pg": "^8.22.0",
+    "pino": "^10.3.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "ws": "^8.21.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "prisma": "^7.9.1",
+    "tsx": "^4.23.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  }
+}
