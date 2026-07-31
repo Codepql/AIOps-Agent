@@ -18,6 +18,13 @@ const pageMeta = {
   knowledge: { code: 'OPS / KNOWLEDGE', title: '知识库', description: '沉淀故障手册与处理经验，为每次排障提供上下文。' },
 } as const;
 
+const marketRows = [
+  { name: 'gateway-api', value: '99.98%', delta: '+0.12%', state: 'normal' },
+  { name: 'order-service', value: '86 ms', delta: '-4.20%', state: 'normal' },
+  { name: 'data-sync', value: '3 alerts', delta: '+2', state: 'risk' },
+  { name: 'knowledge-index', value: '1,248', delta: '+36', state: 'normal' },
+] as const;
+
 async function readSse(response: Response, onPayload: (payload: Record<string, unknown>) => void) {
   if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}`);
   const reader = response.body.getReader();
@@ -170,13 +177,48 @@ export default function Home() {
         </div>
       </header>
 
+      <div className="marketTicker" aria-label="系统实时行情">
+        <span className="tickerClock">LIVE / LOCAL</span>
+        <p><b>API</b><strong className="gain">3001 ONLINE</strong><em>+0.08%</em></p>
+        <p><b>POSTGRES</b><strong className={isHealthy ? 'gain' : 'loss'}>{isHealthy ? 'CONNECTED' : 'LIMITED'}</strong><em>{isHealthy ? '+1.00%' : '-0.38%'}</em></p>
+        <p><b>CLS MCP</b><strong className="gain">8003 READY</strong><em>+0.02%</em></p>
+        <p><b>MONITOR</b><strong className="gain">8004 READY</strong><em>+0.04%</em></p>
+        <p><b>VECTOR</b><strong className={isHealthy ? 'gain' : 'loss'}>{isHealthy ? 'INDEXED' : 'OFFLINE'}</strong><em>{isHealthy ? '+0.16%' : '-1.00%'}</em></p>
+      </div>
+
       {view === 'chat' && <section className="chatWorkspace" aria-label="智能对话">
         <div className="messageStream">
-          {!messages.length && <div className="welcomeState">
-            <div className="signalCore" aria-hidden="true"><span /><span /><span /><b>AI</b></div>
-            <p className="systemLabel"><i /> ON-CALL INTELLIGENCE READY</p>
-            <h2>从信号噪声中，<br />找到真正的故障根因。</h2>
-            <p>连接告警、日志与内部知识，让每一次排障都有迹可循。</p>
+          {!messages.length && <div className="terminalOverview">
+            <section className="trendPanel" aria-labelledby="trend-title">
+              <header><div><p>ONECALL COMPOSITE</p><h2 id="trend-title">系统健康指数</h2></div><div className="quote"><strong>98.72</strong><span className="gain">+1.26&nbsp;&nbsp;+1.29%</span></div></header>
+              <div className="chartLegend"><span>今日</span><span>开 97.46</span><span>高 99.18</span><span>低 96.82</span><span>告警 3</span></div>
+              <div className="lineChart" role="img" aria-label="系统健康指数今日从97.46上升至98.72">
+                <span className="axis top">100</span><span className="axis middle">98</span><span className="axis bottom">96</span>
+                <svg viewBox="0 0 800 260" preserveAspectRatio="none" aria-hidden="true">
+                  <path className="area" d="M0 210 L45 204 L90 218 L135 184 L180 190 L225 154 L270 166 L315 116 L360 132 L405 92 L450 104 L495 76 L540 94 L585 58 L630 68 L675 34 L720 48 L760 26 L800 38 L800 260 L0 260 Z" />
+                  <path className="trend" d="M0 210 L45 204 L90 218 L135 184 L180 190 L225 154 L270 166 L315 116 L360 132 L405 92 L450 104 L495 76 L540 94 L585 58 L630 68 L675 34 L720 48 L760 26 L800 38" />
+                  <path className="average" d="M0 220 L100 206 L200 184 L300 154 L400 126 L500 98 L600 76 L700 58 L800 46" />
+                  <circle cx="800" cy="38" r="5" />
+                </svg>
+                <div className="chartTimes"><span>09:30</span><span>11:30</span><span>14:00</span><span>15:00</span></div>
+              </div>
+              <div className="chartFooter"><span><i className="linePrimary" />健康指数</span><span><i className="lineAverage" />均线</span><strong>数据源：Monitor + CLS</strong></div>
+            </section>
+
+            <aside className="watchlist" aria-label="服务观察列表">
+              <header><div><p>WATCHLIST</p><h2>服务观察</h2></div><span>4 ITEMS</span></header>
+              <div className="watchHead"><span>服务</span><span>最新</span><span>变化</span></div>
+              {marketRows.map((row) => <div className="watchRow" key={row.name}>
+                <span><i className={row.state === 'normal' ? 'statusUp' : 'statusDown'} />{row.name}</span>
+                <strong>{row.value}</strong>
+                <em className={row.state === 'normal' ? 'gain' : 'loss'}>{row.delta}</em>
+              </div>)}
+              <div className="marketDepth">
+                <p><span>运行服务</span><strong>12</strong></p><p><span>活跃告警</span><strong className="loss">03</strong></p>
+                <p><span>知识文档</span><strong>1,248</strong></p><p><span>今日诊断</span><strong>08</strong></p>
+              </div>
+            </aside>
+
             <div className="promptGrid">
               {[
                 { index: '01', title: '检查当前系统告警', caption: '汇总当前活跃告警与影响范围' },
