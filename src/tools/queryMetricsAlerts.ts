@@ -1,6 +1,7 @@
 import { tool } from 'langchain';
 import { z } from 'zod';
 import { config } from '../config.js';
+import { recordToolCall } from '../observability/metrics.js';
 
 const commonLabelKeys = ['severity', 'instance', 'job', 'namespace', 'pod'] as const;
 
@@ -16,6 +17,7 @@ function duration(activeAt: string): string {
 
 export const queryPrometheusAlerts = tool(
   async () => {
+    const started = Date.now();
     try {
       const response = await fetch(`${config.prometheusBaseUrl.replace(/\/$/, '')}/api/v1/alerts`, {
         signal: AbortSignal.timeout(config.prometheusRequestTimeout * 1000),
@@ -46,6 +48,8 @@ export const queryPrometheusAlerts = tool(
       return JSON.stringify({ success: true, alerts, state_counts: stateCounts, total: alerts.length }, null, 2);
     } catch (error) {
       return JSON.stringify({ success: false, error: error instanceof Error ? error.message : String(error) }, null, 2);
+    } finally {
+      recordToolCall('query_prometheus_alerts', Date.now() - started);
     }
   },
   {

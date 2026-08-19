@@ -9,7 +9,7 @@ export class DocumentSplitterService {
     chunkOverlap: config.chunkOverlap,
   });
 
-  async splitDocument(content: string, filePath: string): Promise<Document[]> {
+  async splitDocument(content: string, filePath: string, baseMetadata: Record<string, unknown> = {}): Promise<Document[]> {
     if (!content.trim()) return [];
     const docs = filePath.toLowerCase().endsWith('.md')
       ? await this.textSplitter.splitDocuments(this.splitMarkdownHeaders(content))
@@ -19,6 +19,7 @@ export class DocumentSplitterService {
       doc.metadata._source = filePath;
       doc.metadata._extension = extname(filePath);
       doc.metadata._file_name = basename(filePath);
+      Object.assign(doc.metadata, baseMetadata);
     }
     return merged;
   }

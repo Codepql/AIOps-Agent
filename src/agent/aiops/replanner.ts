@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { config } from '../../config.js';
 import { createChatModel } from '../../core/llmFactory.js';
 import type { PlanExecuteStateUpdate, PlanExecuteStateValue } from './state.js';
+import { appendEvidenceSection, validateEvidenceCitations } from '../../services/evidenceService.js';
 
 const ActSchema = z.object({
   action: z.enum(['continue', 'replan', 'respond']),
@@ -18,9 +19,9 @@ async function generateResponse(state: PlanExecuteStateValue): Promise<PlanExecu
       new SystemMessage('根据原始任务和已执行步骤生成清晰、结构化、基于事实的 Markdown 最终响应。失败步骤需如实说明。'),
       new HumanMessage(`原始任务: ${state.input}\n\n执行历史:\n${history}`),
     ]);
-    return { response: result.response };
+    return { response: validateEvidenceCitations(appendEvidenceSection(result.response, history), history) };
   } catch {
-    return { response: `# 任务执行结果\n\n## 原始任务\n${state.input}\n\n## 执行的步骤\n${history || '无'}\n\n## 说明\n由于系统异常，无法生成完整响应。` };
+    return { response: validateEvidenceCitations(appendEvidenceSection(`# 任务执行结果\n\n## 原始任务\n${state.input}\n\n## 执行的步骤\n${history || '无'}\n\n## 说明\n由于系统异常，无法生成完整响应。`, history), history) };
   }
 }
 

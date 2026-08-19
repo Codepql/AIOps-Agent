@@ -8,6 +8,10 @@ import { chatApi } from './api/chat.js';
 import { fileApi } from './api/file.js';
 import { healthApi } from './api/health.js';
 import { config } from './config.js';
+import { apiKeyMiddleware } from './security/apiKeyAuth.js';
+import { rateLimitMiddleware } from './security/rateLimiter.js';
+import { getObservabilitySnapshot, getPrometheusMetrics, recordHttpRequest, recordOperation } from './observability/metrics.js';
+import { aclMiddleware } from './security/acl.js';
 
 const contentTypes: Record<string, string> = {
   '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8',
@@ -16,7 +20,22 @@ const contentTypes: Record<string, string> = {
 
 export function createApp(): Hono {
   const app = new Hono();
-  app.use('*', cors({ origin: '*', allowMethods: ['GET', 'POST', 'OPTIONS'], allowHeaders: ['Content-Type'], credentials: true }));
+  app.use('*', async (context, next) => {
+    const startedAt = Date.now();
+    const requestId = context.req.header('x-request-id') ?? randomUUID();
+    context.header('x-request-id', requestId);
+    await next();
+    recordHttpRequest(context.res.status);
+    recordOperation(`http.${context.req.method.toLowerCase()}.${context.req.path}`, Date.now() - startedAt, context.res.status >= 500);
+  });
+  app.use('*', cors({ origin: '*', allowMethods: ['GET', 'POST', 'OPTIONS'], allowHeaders: ['Content-Type', 'X-API-Key', 'X-Request-ID'], credentials: true }));
+  app.use('/api/*', apiKeyMiddleware(config.apiKey));
+  app.use('/api/*', rateLimitMiddleware({ maxRequests: config.rateLimitMaxRequests, windowMs: config.rateLimitWindowMs }));
+  app.use('/metrics', apiKeyMiddleware(config.apiKey));
+  app.use('/api/*', aclMiddleware(config.aclEnabled));
+  app.use('/metrics', aclMiddleware(config.aclEnabled));
+  app.get('/metrics', (context) => context.json({ code: 200, data: getObservabilitySnapshot() }));
+  app.get('/metrics/prometheus', (context) => new Response(getPrometheusMetrics(), { headers: { 'content-type': 'text/plain; version=0.0.4; charset=utf-8' } }));
   app.route('/', healthApi);
   app.route('/api', chatApi);
   app.route('/api', fileApi);
@@ -36,3 +55,4 @@ export function createApp(): Hono {
   });
   return app;
 }
+import { randomUUID } from 'node:crypto';

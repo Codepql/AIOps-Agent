@@ -1,0 +1,5 @@
+[
+  { "id": "case-001", "relevantIds": ["chunk-db-timeout", "chunk-pool-runbook"] },
+  { "id": "case-002", "relevantIds": ["chunk-502-gateway"] },
+  { "id": "case-003", "relevantIds": ["chunk-kafka-lag", "chunk-consumer-restart"] }
+]

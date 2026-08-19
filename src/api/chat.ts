@@ -2,12 +2,14 @@ import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { ClearRequestSchema, ChatRequestSchema } from '../models/request.js';
 import { ragAgentService } from '../services/ragAgentService.js';
+import { bindSessionOwner, canAccessSession, getPrincipal } from '../security/acl.js';
 
 export const chatApi = new Hono();
 
 chatApi.post('/chat', async (context) => {
   const parsed = ChatRequestSchema.safeParse(await context.req.json().catch(() => ({})));
   if (!parsed.success) return context.json({ detail: parsed.error.issues }, 422);
+  bindSessionOwner(parsed.data.id, getPrincipal(context).id);
   try {
     const answer = await ragAgentService.query(parsed.data.question, parsed.data.id);
     return context.json({ code: 200, message: 'success', data: { success: true, answer, errorMessage: null } });
@@ -22,6 +24,7 @@ chatApi.post('/chat', async (context) => {
 chatApi.post('/chat_stream', async (context) => {
   const parsed = ChatRequestSchema.safeParse(await context.req.json().catch(() => ({})));
   if (!parsed.success) return context.json({ detail: parsed.error.issues }, 422);
+  bindSessionOwner(parsed.data.id, getPrincipal(context).id);
   return streamSSE(context, async (stream) => {
     for await (const chunk of ragAgentService.queryStream(parsed.data.question, parsed.data.id)) {
       const payload = chunk.type === 'complete'
@@ -37,12 +40,15 @@ chatApi.post('/chat_stream', async (context) => {
 chatApi.post('/chat/clear', async (context) => {
   const parsed = ClearRequestSchema.safeParse(await context.req.json().catch(() => ({})));
   if (!parsed.success) return context.json({ detail: parsed.error.issues }, 422);
+  const principal = getPrincipal(context);
+  if (!canAccessSession(parsed.data.sessionId, principal)) return context.json({ code: 403, message: '无权访问该会话' }, 403);
   const success = await ragAgentService.clearSession(parsed.data.sessionId);
   return context.json({ status: success ? 'success' : 'error', message: success ? '会话已清空' : '清空会话失败', data: null });
 });
 
 chatApi.get('/chat/session/:sessionId', async (context) => {
   const sessionId = context.req.param('sessionId');
+  if (!canAccessSession(sessionId, getPrincipal(context))) return context.json({ code: 403, message: '无权访问该会话' }, 403);
   const history = await ragAgentService.getSessionHistory(sessionId);
   return context.json({ session_id: sessionId, message_count: history.length, history });
 });
