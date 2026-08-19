@@ -11,3 +11,4 @@ uploads/
 coverage/
 *.log
 src/generated/prisma/
+.pnpm-store
