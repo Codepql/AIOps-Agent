@@ -8,6 +8,12 @@ describe('HTTP contracts', () => {
     const response = await app.request('/');
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toContain('text/html');
+    expect(response.headers.get('x-request-id')).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('preserves a caller-provided request id', async () => {
+    const response = await app.request('/', { headers: { 'x-request-id': 'trace-123' } });
+    expect(response.headers.get('x-request-id')).toBe('trace-123');
   });
 
   it('rejects invalid chat requests with 422', async () => {

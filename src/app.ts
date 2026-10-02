@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import { extname, resolve } from 'node:path';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
@@ -55,4 +56,3 @@ export function createApp(): Hono {
   });
   return app;
 }
-import { randomUUID } from 'node:crypto';
