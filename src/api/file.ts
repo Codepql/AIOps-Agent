@@ -41,7 +41,8 @@ fileApi.post('/upload', async (context) => {
   return context.json({
     code: 200,
     message: indexError ? 'uploaded_without_index' : 'success',
-    data: { filename, file_path: filePath, size: file.size, indexed: !indexError, index_error: indexError },
+    // Return a path relative to the upload root; never expose the server's absolute filesystem path.
+    data: { filename, file_path: filename, size: file.size, indexed: !indexError, index_error: indexError },
   });
 });
 
