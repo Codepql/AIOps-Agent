@@ -31,7 +31,7 @@ function deny(context: Context, reason: string): Response {
 
 function allowed(principal: AclPrincipal, path: string, method: string, context: Context): boolean {
   if (principal.roles.includes('admin')) return true;
-  if (path === '/metrics') return principal.roles.includes('observability');
+  if (path === '/metrics' || path.startsWith('/metrics/')) return principal.roles.includes('observability');
   if (path.startsWith('/api/index') || path === '/api/upload' || path === '/api/index_directory') return false;
   if (path === '/api/aiops') return principal.roles.includes('oncall');
   if (path.startsWith('/api/chat')) {
